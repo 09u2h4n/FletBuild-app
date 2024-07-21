@@ -1,11 +1,14 @@
 import flet as ft
-import platform
+from typing import Optional, Callable
 
 def main(page: ft.Page):
+    # Set the title, theme, and scroll behavior of the page
     page.title = "FLETBUILD"
     page.theme_mode = ft.ThemeMode.DARK
     page.theme = ft.Theme(color_scheme_seed="blue")
+    page.scroll = True
 
+    # Function to toggle between dark and light mode
     def toggle_dark_mode(e):
         page.theme_mode = (
             ft.ThemeMode.DARK
@@ -15,12 +18,15 @@ def main(page: ft.Page):
         dark_mode_switch.value = page.theme_mode == ft.ThemeMode.DARK
         page.update()
 
+    # Function to change the theme based on dropdown selection
     def change_theme(e):
         page.theme = ft.Theme(color_scheme_seed=theme_dropdown.value)
         page.update()
 
+    # Switch to toggle dark mode
     dark_mode_switch = ft.Switch(value=True, on_change=toggle_dark_mode)
 
+    # Dropdown to select theme color
     theme_dropdown = ft.Dropdown(
         options=[
             ft.dropdown.Option("blue", "Default"),
@@ -33,9 +39,10 @@ def main(page: ft.Page):
         width=200,
     )
 
-    include_packages_dialog = ft.AlertDialog(
-        title=ft.Text("Include Packages"),
+    # Container for including extra packages
+    include_packages_container = ft.Container(
         content=ft.Column([
+            ft.Text("Include Packages"),
             ft.Row([ft.Checkbox(label="Video")]),
             ft.Row([ft.Checkbox(label="Audio")]),
             ft.Row([ft.Checkbox(label="Webview")]),
@@ -46,6 +53,7 @@ def main(page: ft.Page):
         ])
     )
 
+    # Dialog for settings
     settings_dialog = ft.AlertDialog(
         title=ft.Text("Settings"),
         content=ft.Container(
@@ -58,11 +66,13 @@ def main(page: ft.Page):
         ),
     )
 
+    # Function to open the settings dialog
     def open_settings(e):
         page.overlay.append(settings_dialog)
         settings_dialog.open = True
         page.update()
 
+    # Container for logging platform information
     log_box = ft.Container(
         content=ft.Column([
             ft.Text(f"target_platform={None}")
@@ -71,62 +81,78 @@ def main(page: ft.Page):
         padding=10
     )
 
+    # Application bar with title, leading icon, and actions
+    app_bar = ft.AppBar(
+        leading=ft.Image(src="icon.png"),
+        title=ft.Container(content=ft.Text("FLETBUILD", weight=ft.FontWeight.BOLD), on_click=lambda _: page.go("/")),
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        actions=[
+            ft.IconButton(
+                icon=ft.icons.CODE,
+                tooltip="GitHub",
+                on_click=lambda _: page.launch_url("https://github.com/09u2h4n")
+            ),
+            ft.IconButton(ft.icons.SETTINGS, on_click=open_settings),
+        ]
+    )
+
+    # Text to display the current route path
     route_path = ft.Text("/")
 
+    # Function to update the target platform and log it
     def update_target_platform(target_platform):
         log_box.content.controls[0].value = f"target_platform={target_platform}"
         route_path.value = "/"+target_platform
         page.update()
 
-    def open_packages(e):
-        page.overlay.append(include_packages_dialog)
-        include_packages_dialog.open = True
-        page.update()
+    # Function to create a platform selector with optional on-click behavior
+    def platform_selector(src: str, platform_name: str, on_click: Optional[Callable[[str], None]] = None):
+        image = ft.Image(src=src, width=150, height=150)
+        
+        if on_click:
+            container = ft.Container(
+                content=image,
+                on_click=lambda _: on_click(platform_name.lower())
+            )
+        else:
+            container = ft.Container(content=image)
 
+        return ft.Column([
+            container,
+            ft.Text(platform_name)
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+    
+    # Function to create a tooltip with a text field and message
+    def optionw_tooltip(label, message):
+        return ft.Tooltip(
+            content=ft.TextField(label=label),
+            message=message
+        )
+    
+    # Tooltips for various project settings
+    project_name = optionw_tooltip("Project name", "Project name for executable or bundle")
+    description = optionw_tooltip("Description", "The description to use for executable or bundle")
+    product_name = optionw_tooltip("Product name", "Project display name that is shown in window titles and about app dialogs")
+    organization_name = optionw_tooltip("Organization name", 'Organization name in reverse domain name notation, e.g. "com.mycompany" - combined with project name and used as an iOS and Android bundle ID')
+    company_name = optionw_tooltip("Company name", "Company name to display in about app dialogs")
+    copyright_text = optionw_tooltip("Copyright", "Copyright text to display in about app dialogs")
+    build_number = optionw_tooltip("Build number", "Build number - an identifier used as an internal version number")
+    build_version = optionw_tooltip("Build version", 'Build version - a "x.y.z" string used as the version number shown to users')
+    include_packages = ft.Tooltip(content=include_packages_container, message="Include extra Flutter Flet packages, such as flet_video, flet_audio, etc.")
+
+    # Function to handle route changes and update the view accordingly
     def route_change(route):
         page.views.clear()
         page.views.append(
             ft.View(
                 "/",
                 [
-                    ft.AppBar(
-                        leading=ft.Image(src="logo-fletbuild.png"),
-                        title=ft.Text("FLETBUILD", weight=ft.FontWeight.BOLD),
-                        bgcolor=ft.colors.SURFACE_VARIANT,
-                        actions=[
-                            ft.IconButton(
-                                icon=ft.icons.CODE,
-                                tooltip="GitHub",
-                                on_click=lambda _: page.launch_url("https://github.com/09u2h4n")
-                            ),
-                            ft.IconButton(ft.icons.SETTINGS, on_click=open_settings),
-                        ]
-                    ),
+                    app_bar,
                     ft.Column([
                         ft.Row([
-                            ft.Column([
-                                ft.Container(
-                                    content=ft.Image(src="linux-logo.png", width=150, height=150),
-                                    on_click=lambda _: update_target_platform("linux")
-                                ),
-                                ft.Text("Linux")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-
-                            ft.Column([
-                                ft.Container(
-                                    content=ft.Image(src="android-logo.png", width=150, height=150),
-                                    on_click=lambda _: update_target_platform("android")
-                                ),
-                                ft.Text("Android")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-
-                            ft.Column([
-                                ft.Container(
-                                    content=ft.Image(src="web-logo.png", width=150, height=150),
-                                    on_click=lambda _: update_target_platform("web")
-                                ),
-                                ft.Text("Web")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                            platform_selector("linux-logo.png", "linux", update_target_platform),
+                            platform_selector("android-logo.png", "android", update_target_platform),
+                            platform_selector("web-logo.png", "web", update_target_platform),
                             ], alignment=ft.MainAxisAlignment.CENTER),
 
                         ft.ElevatedButton("Start", on_click=lambda e: page.go(route_path.value)),
@@ -137,87 +163,38 @@ def main(page: ft.Page):
                     ])
             )
 
+        # View for the Linux platform
         if page.route == "/linux":
-            page.views.append(
+             page.views.append(
                 ft.View(
                     "/linux",
                     [
-                    ft.AppBar(
-                        leading=ft.Image(src="logo-fletbuild.png"),
-                        title=ft.Text("FLETBUILD", weight=ft.FontWeight.BOLD),
-                        bgcolor=ft.colors.SURFACE_VARIANT,
-                        actions=[
-                            ft.IconButton(
-                                icon=ft.icons.CODE,
-                                tooltip="GitHub",
-                                on_click=lambda _: page.launch_url("https://github.com/09u2h4n")
-                            ),
-                            ft.IconButton(ft.icons.SETTINGS, on_click=open_settings),
-                        ]
-                    ),
+                    app_bar,
                     ft.Column([
                         ft.Row([
+                            platform_selector("linux-logo.png", "linux"),
                             ft.Column([
-                                ft.Container(
-                                    content=ft.Image(src="linux-logo.png", width=150, height=150),
-                                ),
-                                ft.Text("Linux")
-                            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                            ft.Column([
-                                ft.Tooltip(
-                                content=ft.TextField(label="Project name"),
-                                message="Project name for executable or bundle"
-                                ),
-                                ft.Tooltip(
-                                    content=ft.TextField(label="Description"),
-                                    message="The description to use for executable or bundle"
-                                ),
-                                ft.Tooltip(
-                                    content=ft.TextField(label="Product name"),
-                                    message="Project display name that is shown in window titles and about app dialogs"
-                                ),
-                                ft.Tooltip(
-                                    content=ft.TextField(label="Organization name"),
-                                    message='Organization name in reverse domain name notation, e.g. "com.mycompany" - combined with project name and used as an iOS and Android bundle ID'
-                                ),
+                                project_name,
+                                description,
+                                product_name,
+                                organization_name,
                             ]),
                             ft.Column([
-                                ft.Tooltip(
-                                content=ft.TextField(label="Company name"),
-                                message="Company name to display in about app dialogs"
-                                ),
-                                ft.Tooltip(
-                                    content=ft.TextField(label="Copyright"),
-                                    message="Copyright text to display in about app dialogs"
-                                ),
-                                #ft.Tooltip(
-                                #    content=ft.TextField(label="flutter-build-args"),
-                                #    message="Additional arguments for flutter build command"
-                                #),
-                                ft.Tooltip(
-                                    content=ft.Container(content=ft.TextField("Include packages", disabled=True), on_click=open_packages),
-                                    message="Include extra Flutter Flet packages, such as flet_video, flet_audio, etc."
-                                ),
-                                ft.Tooltip(
-                                    content=ft.TextField(label="Build number"),
-                                    message="Build number - an identifier used as an internal version number"
-                                ),
+                                company_name,
+                                copyright_text,
+                                build_number,
+                                build_version,
                             ]),
                             ft.Column([
-                                ft.Tooltip(
-                                    content=ft.TextField(label="Build version"),
-                                    message='Build version - a "x.y.z" string used as the version number shown to users'
-                                ),
-                            ])
-                            
-
-                            
-                            
-                        ], alignment=ft.MainAxisAlignment.CENTER)
+                                include_packages
+                            ]),
+                        ], alignment=ft.MainAxisAlignment.CENTER),
+                        ft.ElevatedButton("Start", on_click=lambda _: print(project_name.content.value))
                     ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=True)
                     ]
                 )
             )
+        # View for the Android platform
         elif page.route == "/android":
             page.views.append(
                 ft.View(
@@ -227,6 +204,7 @@ def main(page: ft.Page):
                     ]
                 )
             )
+        # View for the Web platform
         elif page.route == "/web":
             page.views.append(
                 ft.View(
@@ -239,13 +217,16 @@ def main(page: ft.Page):
 
         page.update()
 
+    # Function to handle view pop (back navigation)
     def view_pop(view):
         page.views.pop()
         top_view = page.views[-1]
         page.go(top_view.route)
 
+    # Set the route change and view pop handlers
     page.on_route_change = route_change
     page.on_view_pop = view_pop
     page.go(page.route)
 
-ft.app(target=main, view=ft.AppView.WEB_BROWSER, assets_dir=".")
+# Run the Flet application with the main function
+ft.app(target=main, view=ft.AppView.FLET_APP, assets_dir=".")
